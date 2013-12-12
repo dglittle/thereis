@@ -1,0 +1,263 @@
+<html>
+<head>
+<title>untitled</title>
+<meta name="viewport" content="width=device-width, user-scalable=no">
+<style>
+
+body {
+    margin: 0px;
+}
+table {
+    border-collapse: collapse;
+}
+th, td {
+    padding: 0px;
+}
+
+</style>
+</head>
+<body>
+<script src="//code.jquery.com/jquery-2.0.3.min.js"></script>
+<script src="/gl519/jquery.cookie.js"></script>
+
+<script src="/gl519/index.js"></script>
+<script src="/gl519/random.js"></script>
+
+<script src="/static/utils.js"></script>
+<script src="/static/wordcloud2.js"></script>
+<script>
+
+// todo:
+// - (test) make tilting screen not make it tilt
+
+ontouch = null
+function initTouch() {
+	var touchstart = null
+	var touchend = null
+	document.addEventListener('touchstart', function(e) {
+	    e.preventDefault()
+	    var touch = e.touches[0]
+	    var tx = touch.pageX
+	    var ty = touch.pageY
+	    touchstart = { x : tx, y : ty }
+	    touchend = { x : tx, y : ty }
+	}, false)
+	document.addEventListener('touchmove', function(e) {
+	    e.preventDefault()
+	    var touch = e.touches[0]
+	    var tx = touch.pageX
+	    var ty = touch.pageY
+	    touchend = { x : tx, y : ty }
+	}, false)
+	document.addEventListener('touchend', function(e) {
+	    e.preventDefault()
+	    var dx = touchend.x - touchstart.x
+	    var dy = touchend.y - touchstart.y
+	    var dist = Math.sqrt(dx * dx + dy * dy)
+	    var angle = Math.atan2(-dy, dx)
+	    if (angle < 0) angle = tau + angle
+	    angle = Math.floor((angle + tau/16) / (tau/8)) % 8
+	    if (ontouch) ontouch(touchend.x, touchend.y, dist < 6 ? -1 : angle)
+	}, false)
+}
+
+function drawSenseInputScreen() {
+	var w = $(window).width()
+	var h = $(window).height()
+	var squareSize = Math.min(w, h)
+
+	var square = $('<div/>')
+	square.css({
+		width : squareSize,
+		height : squareSize,
+		background : 'white'
+	})
+
+	if (!g_user.buttons) {
+		g_user.buttons = [
+			'other', 'seeing', 'other',
+			'thinking', '', 'hearing',
+			'tasting', 'feeling', 'smelling'
+		].join('\n')
+	}
+	var senses = g_user.buttons.split('\n').slice(0, 9)
+	var senseCounts = {}
+
+	var oldRandom = Math.random
+	Math.randomSeed(5006)
+	var senseColors = {}
+	_.each(senses, function (s) {
+		var color = _.shuffle([200, _.randomInt(128, 200), 128])
+		var highlight = _.map(color, function (x) { return Math.round(_.lerp(128, 160, 200, 255, x)) })
+		function rgb(c) {
+			return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'
+		}
+		senseColors[s] = [rgb(color), rgb(highlight)]
+	})
+	Math.random = oldRandom
+
+	senseSounds = {
+		'feeling' : new Audio('/static/feeling.wav'),
+		'thinking' : new Audio('/static/thinking.wav'),
+		'seeing' : new Audio('/static/seeing.wav'),
+		'hearing' : new Audio('/static/hearing.wav')
+	}
+
+	var buttons = []
+	function drawButton(text, colors) {
+		var d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
+		if (text) {
+			d.css('background', colors[0])
+			d.ontouch = function () {
+				_.bagAdd(senseCounts, text)
+
+				var snd = senseSounds[text]
+				if (snd) {
+					snd.currentTime = 0
+					snd.play()
+				}
+
+				d.css('background', colors[1])
+				setTimeout(function () {
+					d.css('background', colors[0])
+				}, 100)
+			}
+		}
+		buttons.push(d)
+		return d
+	}
+
+	ontouch = function (tx, ty, dir) {
+		if (dir < 0) {
+		    _.each(buttons, function (b) {
+		    	var pos = b.offset()
+		    	var bx = pos.left
+		    	var by = pos.top
+		    	if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
+		    		if (b.ontouch) b.ontouch()
+		    	}
+		    })
+		} else {
+			var mapper = [5, 2, 1, 0, 3, 6, 7, 8]
+			var b = buttons[mapper[dir]]
+    		if (b.ontouch) b.ontouch()
+		}
+	}
+
+	var x = _.map(senses, function (s) {
+		return drawButton(s, senseColors[s])
+	})
+	square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
+
+	var d = $('<div/>')
+
+	var top = $('<div style="width:100%;height:' + Math.floor((h - squareSize) / 2) + '"/>')
+	top.append($('<button style="width:20%"/>').text('edit').click(function () {
+		ontouch = function () {}
+		var edit = $('<textarea style="width:100%;height:100%"/>').val(g_user.buttons)
+		$('body').empty().append(
+			$('<button style="width:50%">').text('cancel').click(function () {
+				$('body').empty().append(drawSenseInputScreen())
+			})
+		).append(
+			$('<button style="width:50%">').text('save').click(function () {
+				$('body').empty().append(createThrobber())
+				g_user.buttons = edit.val()
+				rpc('saveButtons', {
+					user : g_user._id,
+					buttons : g_user.buttons
+				}, function () {
+					$('body').empty().append(drawSenseInputScreen())
+				})
+			})
+		).append(edit)
+	}))
+	var input = $('<input type="text" style="width:60%"/>')
+	top.append(input)
+	top.append($('<button style="width:20%"/>').text('note').click(function () {
+		_.bagAdd(senseCounts, input.val())
+		input.val('')
+	}))
+	d.append(top)
+
+	d.append(square)
+
+	var done = center($('<div style="font-size:x-large;font-weight:bold"/>').text('done')).css('height', Math.ceil((h - squareSize) / 2))
+	buttons.push(done)
+	d.append(done)
+	done.ontouch = function () {
+		$('body').empty().append(drawCloud(senseCounts, w, h))
+		ontouch = function () {
+			$('body').empty().append(drawSenseInputScreen())
+		}
+		rpc('saveCloud', { user : g_user._id, counts : senseCounts }, function () {})
+	}
+
+	return d
+}
+
+function drawCloud(counts, w, h) {
+	var c = $('<canvas/>').attr('width', w).attr('height', h)
+
+	var big = Math.min(w, h) / 5
+	var min = _.min(counts)
+	var max = _.max(counts)
+	sizes = _.map(counts, function (x) {
+		return _.lerp(0, 0, max, big, x)
+	})
+	WordCloud(c[0], {
+		list: _.pairs(sizes),
+		minRotation: tau / 4,
+		maxRotation: tau / 4,
+		rotateRatio: .5
+	})
+
+	return c
+}
+
+$(function () {
+	if (!_.getUrlParams()['user']) {
+		window.location.href = window.location.href + '?user=' + _.randomString(4)
+		return
+	}
+
+	initTouch()
+
+	// from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
+	$(window).bind('orientationchange', function() {
+		if (window.orientation === undefined) return
+		var origin = ($(window).width() / 2) + 'px ' + ($(window).height() / 2) + 'px'
+		if (window.orientation % 180 == 0) {
+			$(document.body).css("-webkit-transform-origin", "").css("-webkit-transform", "")
+		} else {
+			if (window.orientation > 0) { //clockwise
+				$(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(-90deg)")
+			} else {
+				$(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(90deg)")
+			}
+		}
+	}).trigger('orientationchange')	
+
+	rpc('getUser', _.getUrlParams()['user'], function (user) {
+		g_user = user
+
+		if(_.getUrlParams()['mobile'] || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+			$('body').append(drawSenseInputScreen())
+		} else {
+			rpc('getClouds', g_user._id, function (clouds) {
+				function drawNext() {
+					var cloud = clouds.shift()
+					if (cloud) {
+						$('body').append($('<div style="float:left"/>').append(drawCloud(cloud.counts, 400, 400)))
+						setTimeout(drawNext, 0)
+					}
+				}
+				drawNext()
+			})
+		}
+	})
+})
+
+</script>
+</body>
+</html>
