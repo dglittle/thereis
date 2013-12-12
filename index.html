@@ -100,10 +100,10 @@ function drawSenseInputScreen() {
 	Math.random = oldRandom
 
 	senseSounds = {
-		'feeling' : new Audio('/static/feeling.wav'),
-		'thinking' : new Audio('/static/thinking.wav'),
-		'seeing' : new Audio('/static/seeing.wav'),
-		'hearing' : new Audio('/static/hearing.wav')
+		'feeling' : createSound('/static/feeling.wav'),
+		'thinking' : createSound('/static/thinking.wav'),
+		'seeing' : createSound('/static/seeing.wav'),
+		'hearing' : createSound('/static/hearing.wav')
 	}
 
 	var buttons = []
@@ -116,7 +116,6 @@ function drawSenseInputScreen() {
 
 				var snd = senseSounds[text]
 				if (snd) {
-					snd.currentTime = 0
 					snd.play()
 				}
 
@@ -221,6 +220,52 @@ function drawCloud(counts, w, h) {
 	return c
 }
 
+g_audio = null
+function initAudio() {
+	try {
+		// Fix up for prefixing
+		window.AudioContext = window.AudioContext || window.webkitAudioContext
+		g_audio = new AudioContext()
+	} catch(e) {}
+}
+
+function loadSound(url, cb) {
+	var request = new XMLHttpRequest()
+	request.open('GET', url, true)
+	request.responseType = 'arraybuffer'
+
+	request.onload = function () {
+		g_audio.decodeAudioData(request.response, function (buffer) {
+			cb(buffer)
+		}, function () {})
+	}
+	request.send()
+}
+
+function createSound(url) {
+	var buffer = null
+	var onLoad = null
+	loadSound(url, function (b) {
+		buffer = b
+		if (onLoad) onLoad()
+	})
+	var sound = {
+		play : function () {
+			if (!buffer) {
+				onLoad = function () {
+					sound.play()
+				}
+				return
+			}
+			var source = g_audio.createBufferSource()
+			source.buffer = buffer
+			source.connect(g_audio.destination)
+			source.start(0)
+		}
+	}
+	return sound
+}
+
 $(function () {
 	if (!_.getUrlParams()['user']) {
 		window.location.href = window.location.href + '?user=' + _.randomString(4)
@@ -228,6 +273,8 @@ $(function () {
 	}
 
 	initTouch()
+
+	initAudio()
 
 	// from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
 	$(window).bind('orientationchange', function() {
