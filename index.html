@@ -31,38 +31,31 @@ th, td {
 // - (test) make tilting screen not make it tilt
 
 ontouch = null
+touch_gesture_region = 1000000
 function initTouch() {
 	var touchstart = null
 	var touchend = null
 	document.addEventListener('touchstart', function(e) {
-	    e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
 	    touchstart = { x : tx, y : ty }
 	    touchend = { x : tx, y : ty }
-
-	    // work here
-	    g_input.val('sx:' + tx + ',sy:' + ty)
+	    if (ty > touch_gesture_region)
+		    e.preventDefault()
 	}, false)
 	document.addEventListener('touchmove', function(e) {
-	    e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
 	    touchend = { x : tx, y : ty }
-
-	    // work here
-	    g_input.val('mx:' + tx + ',my:' + ty)
+	    if (ty > touch_gesture_region)
+		    e.preventDefault()
 	}, false)
 	document.addEventListener('touchend', function(e) {
-	    e.preventDefault()
+	    // e.preventDefault()
 	    var dx = touchend.x - touchstart.x
 	    var dy = touchend.y - touchstart.y
-
-	    // work here
-	    g_input.val('dx:' + dx + ',dy:' + dy)
-
 	    var dist = Math.sqrt(dx * dx + dy * dy)
 	    var angle = Math.atan2(-dy, dx)
 	    if (angle < 0) angle = tau + angle
@@ -137,6 +130,7 @@ function drawSenseInputScreen() {
 		return d
 	}
 
+	touch_gesture_region = Math.floor((h - squareSize) / 2)
 	ontouch = function (tx, ty, dir) {
 		if (dir < 0) {
 		    _.each(buttons, function (b) {
@@ -163,6 +157,7 @@ function drawSenseInputScreen() {
 
 	var top = $('<div style="width:100%;height:' + Math.floor((h - squareSize) / 2) + '"/>')
 	top.append($('<button style="width:20%"/>').text('edit').click(function () {
+		touch_gesture_region = 1000000
 		ontouch = function () {}
 		var edit = $('<textarea style="width:100%;height:100%"/>').val(g_user.buttons)
 		$('body').empty().append(
@@ -183,10 +178,6 @@ function drawSenseInputScreen() {
 		).append(edit)
 	}))
 	var input = $('<input type="text" style="width:60%"/>')
-
-	// work here
-	g_input = input
-
 	top.append(input)
 	top.append($('<button style="width:20%"/>').text('note').click(function () {
 		_.bagAdd(senseCounts, input.val())
@@ -201,6 +192,7 @@ function drawSenseInputScreen() {
 	d.append(done)
 	done.ontouch = function () {
 		$('body').empty().append(drawCloud(senseCounts, w, h))
+		touch_gesture_region = 0
 		ontouch = function () {
 			$('body').empty().append(drawSenseInputScreen())
 		}
