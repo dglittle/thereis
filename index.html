@@ -35,7 +35,7 @@ function initTouch() {
 	var touchstart = null
 	var touchend = null
 	document.addEventListener('touchstart', function(e) {
-	    //e.preventDefault()
+	    e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
@@ -46,7 +46,7 @@ function initTouch() {
 	    g_input.val('sx:' + tx + ',sy:' + ty)
 	}, false)
 	document.addEventListener('touchmove', function(e) {
-	    //e.preventDefault()
+	    e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
@@ -56,7 +56,7 @@ function initTouch() {
 	    g_input.val('mx:' + tx + ',my:' + ty)
 	}, false)
 	document.addEventListener('touchend', function(e) {
-	    //e.preventDefault()
+	    e.preventDefault()
 	    var dx = touchend.x - touchstart.x
 	    var dy = touchend.y - touchstart.y
 
