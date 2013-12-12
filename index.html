@@ -53,6 +53,10 @@ function initTouch() {
 	    //e.preventDefault()
 	    var dx = touchend.x - touchstart.x
 	    var dy = touchend.y - touchstart.y
+
+	    // work here
+	    g_input.val('dx:' + dx + ',dy:' + dy)
+
 	    var dist = Math.sqrt(dx * dx + dy * dy)
 	    var angle = Math.atan2(-dy, dx)
 	    if (angle < 0) angle = tau + angle
@@ -173,6 +177,10 @@ function drawSenseInputScreen() {
 		).append(edit)
 	}))
 	var input = $('<input type="text" style="width:60%"/>')
+
+	// work here
+	g_input = input
+
 	top.append(input)
 	top.append($('<button style="width:20%"/>').text('note').click(function () {
 		_.bagAdd(senseCounts, input.val())
