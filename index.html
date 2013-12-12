@@ -35,7 +35,7 @@ function initTouch() {
 	var touchstart = null
 	var touchend = null
 	document.addEventListener('touchstart', function(e) {
-	    e.preventDefault()
+	    //e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
@@ -43,14 +43,14 @@ function initTouch() {
 	    touchend = { x : tx, y : ty }
 	}, false)
 	document.addEventListener('touchmove', function(e) {
-	    e.preventDefault()
+	    //e.preventDefault()
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
 	    touchend = { x : tx, y : ty }
 	}, false)
 	document.addEventListener('touchend', function(e) {
-	    e.preventDefault()
+	    //e.preventDefault()
 	    var dx = touchend.x - touchstart.x
 	    var dy = touchend.y - touchstart.y
 	    var dist = Math.sqrt(dx * dx + dy * dy)
@@ -245,6 +245,10 @@ $(function () {
 			$('body').append(drawSenseInputScreen())
 		} else {
 			rpc('getClouds', g_user._id, function (clouds) {
+				if (clouds.length == 0) {
+					$('body').append($('<div/>').text('open this url on a phone to do some noting, and come back here to see old word clouds'))
+					return
+				}
 				function drawNext() {
 					var cloud = clouds.shift()
 					if (cloud) {
