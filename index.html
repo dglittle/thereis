@@ -205,10 +205,11 @@ function drawCloud(counts, w, h) {
 	var c = $('<canvas/>').attr('width', w).attr('height', h)
 
 	var big = Math.min(w, h) / 5
+	var small = 12
 	var min = _.min(counts)
 	var max = _.max(counts)
 	sizes = _.map(counts, function (x) {
-		return _.lerp(0, 0, max, big, x)
+		return _.lerp(0, small, max, big, x)
 	})
 	WordCloud(c[0], {
 		list: _.pairs(sizes),
