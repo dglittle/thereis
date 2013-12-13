@@ -152,29 +152,26 @@ function drawSenseInputScreen() {
 	})
 	square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
 
-	var d = $('<div/>')
-
-	var top = $('<div style="width:100%;height:' + Math.floor((h - squareSize) / 2) + '"/>')
+	var top = $('<div style="width:100%"/>')
 	top.append($('<button style="width:20%"/>').text('edit').click(function () {
 		touch_gesture_region = 1000000
 		ontouch = function () {}
 		var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
-		$('body').empty().append(
-			$('<button style="width:50%">').text('cancel').click(function () {
+		var cancel = $('<button style="width:50%">').text('cancel').click(function () {
+			$('body').empty().append(drawSenseInputScreen())
+		})
+		var save = $('<button style="width:50%">').text('save').click(function () {
+			$('body').empty().append(createThrobber())
+			g_user.buttons = edit.val()
+			rpc('saveButtons', {
+				user : g_user._id,
+				buttons : g_user.buttons
+			}, function () {
 				$('body').empty().append(drawSenseInputScreen())
 			})
-		).append(
-			$('<button style="width:50%">').text('save').click(function () {
-				$('body').empty().append(createThrobber())
-				g_user.buttons = edit.val()
-				rpc('saveButtons', {
-					user : g_user._id,
-					buttons : g_user.buttons
-				}, function () {
-					$('body').empty().append(drawSenseInputScreen())
-				})
-			})
-		).append(edit)
+		})
+
+		$('body').empty().append(_.splitVert(2, 1, $('<div/>').append(cancel).append(save), edit))
 	}))
 	var input = $('<input type="text" style="width:60%"/>')
 	top.append(input)
@@ -182,13 +179,10 @@ function drawSenseInputScreen() {
 		_.bagAdd(senseCounts, input.val())
 		input.val('')
 	}))
-	d.append(top)
 
-	d.append(square)
-
-	var done = center($('<div style="font-size:x-large;font-weight:bold"/>').text('done')).css('height', Math.ceil((h - squareSize) / 2))
+    var done = $('<table style="width:100%;height:100%"><tr><td align="center" valign="top"></td></tr></table>')
+    done.find('td').append($('<div style="margin-top:20px;font-size:x-large;font-weight:bold"/>').text('done'))
 	buttons.push(done)
-	d.append(done)
 	done.ontouch = function () {
 		$('body').empty().append(drawCloud(senseCounts, w, h))
 		touch_gesture_region = 0
@@ -198,7 +192,7 @@ function drawSenseInputScreen() {
 		rpc('saveCloud', { user : g_user._id, counts : senseCounts }, function () {})
 	}
 
-	return d
+	return _.splitVert(2, 1, top, _.splitVert(2, 1, square, done))
 }
 
 function drawCloud(counts, w, h) {
