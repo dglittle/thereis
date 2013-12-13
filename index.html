@@ -158,7 +158,7 @@ function drawSenseInputScreen() {
 	top.append($('<button style="width:20%"/>').text('edit').click(function () {
 		touch_gesture_region = 1000000
 		ontouch = function () {}
-		var edit = $('<textarea style="width:100%;height:100%"/>').val(g_user.buttons)
+		var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
 		$('body').empty().append(
 			$('<button style="width:50%">').text('cancel').click(function () {
 				$('body').empty().append(drawSenseInputScreen())
