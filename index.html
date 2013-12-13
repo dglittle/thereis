@@ -153,14 +153,14 @@ function drawSenseInputScreen() {
 	square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
 
 	var top = $('<div style="width:100%"/>')
-	top.append($('<button style="width:20%"/>').text('edit').click(function () {
+	top.append($('<button style="width:20%;font-size:large"/>').text('edit').click(function () {
 		touch_gesture_region = 1000000
 		ontouch = function () {}
 		var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
-		var cancel = $('<button style="width:50%">').text('cancel').click(function () {
+		var cancel = $('<button style="width:50%;font-size:large">').text('cancel').click(function () {
 			$('body').empty().append(drawSenseInputScreen())
 		})
-		var save = $('<button style="width:50%">').text('save').click(function () {
+		var save = $('<button style="width:50%;font-size:large">').text('save').click(function () {
 			$('body').empty().append(createThrobber())
 			g_user.buttons = edit.val()
 			rpc('saveButtons', {
@@ -173,9 +173,9 @@ function drawSenseInputScreen() {
 
 		$('body').empty().append(_.splitVert(2, 1, $('<div/>').append(cancel).append(save), edit))
 	}))
-	var input = $('<input type="text" style="width:60%"/>')
+	var input = $('<input type="text" style="width:60%;font-size:large"/>')
 	top.append(input)
-	top.append($('<button style="width:20%"/>').text('note').click(function () {
+	top.append($('<button style="width:20%;font-size:large"/>').text('note').click(function () {
 		_.bagAdd(senseCounts, input.val())
 		input.val('')
 	}))
