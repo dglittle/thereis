@@ -270,8 +270,16 @@ function drawSenseInputScreen(senseCounts) {
 				d.append(dd)
 			})
 
+			// work here
+			var blah = $('<div style="position:absolute;left:0px;top:0px"/>').text('hi')
+			d.append(blah)
+
 			var scrollTo = null
 			ontouchmove = function (tx, ty) {
+
+				// work here
+				blah.text('x: ' + tx + ', ty: ' + ty)
+
 				scrollTo = null
 				_.each(letters, function (b) {
 					var pos = b.offset()
