@@ -99,7 +99,9 @@ function initTouch() {
 	    	if (angleDiff > -tau && angleDiff < tau)
 	    		angleAgg += angleDiff
 	    }
-	    if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg)
+	    // work here
+	    if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg, touch)
+	    //if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg)
 
 	    if (ty > touch_gesture_region)
 		    e.preventDefault()
@@ -275,10 +277,14 @@ function drawSenseInputScreen(senseCounts) {
 			d.append(blah)
 
 			var scrollTo = null
-			ontouchmove = function (tx, ty) {
+			ontouchmove = function (tx, ty, angleAgg, touch) {
 
 				// work here
-				blah.text('x: ' + tx + ', ty: ' + ty)
+				var s = ''
+				for (var k in touch) {
+					s = s + ', ' + k
+				}
+				blah.text('blah: ' + s)
 
 				scrollTo = null
 				_.each(letters, function (b) {
