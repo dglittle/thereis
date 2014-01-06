@@ -58,7 +58,7 @@ function angleBetween(a, b) {
 ///
 
 ontouch = null
-ontouchmove = null
+my_ontouchmove = null
 touch_gesture_region = 1000000
 function initTouch() {
 	var touchstart = null
@@ -100,8 +100,8 @@ function initTouch() {
 	    		angleAgg += angleDiff
 	    }
 	    // work here
-	    if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg, touch)
-	    //if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg)
+	    if (my_ontouchmove) my_ontouchmove(touchend.x, touchend.y, angleAgg, touch)
+	    //if (my_ontouchmove) my_ontouchmove(touchend.x, touchend.y, angleAgg)
 
 	    if (ty > touch_gesture_region)
 		    e.preventDefault()
@@ -204,7 +204,7 @@ function drawSenseInputScreen(senseCounts) {
 	function drawWordList(words, scrollTo) {
 		touch_gesture_region = 1000000
 		ontouch = null
-		ontouchmove = null
+		my_ontouchmove = null
 		var d = $('<div style="width:100%"/>')
 		var scrollTop = null
 		var y = 0
@@ -249,7 +249,7 @@ function drawSenseInputScreen(senseCounts) {
 	var blar = $('<div style="position:absolute;left:0px;top:0px;z-index:1000"/>').text('hi')
 	$('body').append(blar)
 
-	ontouchmove = function (tx, ty, angleAgg, touch) {
+	my_ontouchmove = function (tx, ty, angleAgg, touch) {
 
 		// work here
 		var s = ''
