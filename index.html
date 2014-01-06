@@ -258,10 +258,10 @@ function drawSenseInputScreen(senseCounts) {
 		}
 		blar.text('bl: ' + s + ' x: ' + tx)
 
-		if (Math.abs(angleAgg) > tau / 2) {
+		// if (Math.abs(angleAgg) > tau / 2) {
 			// work here
-			var d = $('<div style="position:absolute;left:0;top:0;z-index:10000"/>')
-			$('body').append(d)
+			// var d = $('<div style="position:absolute;left:0;top:0;z-index:10000"/>')
+			// $('body').append(d)
 			// var d = $('<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:white;z-index:10000"/>')
 			// $('body').append(d)
 
@@ -290,18 +290,18 @@ function drawSenseInputScreen(senseCounts) {
 			// })
 
 			// work here
-			var blah = $('<div style="position:absolute;left:0px;top:0px"/>').text('hi')
-			d.append(blah)
+			// var blah = $('<div style="position:absolute;left:0px;top:0px"/>').text('hi')
+			// d.append(blah)
 
-			var scrollTo = null
-			ontouchmove = function (tx, ty, angleAgg, touch) {
+			// var scrollTo = null
+			// ontouchmove = function (tx, ty, angleAgg, touch) {
 
-				// work here
-				var s = ''
-				for (var k in touch) {
-					s = s + ', ' + k
-				}
-				blah.text('blah: ' + s)
+			// 	// work here
+			// 	var s = ''
+			// 	for (var k in touch) {
+			// 		s = s + ', ' + k
+			// 	}
+			// 	blah.text('blah: ' + s)
 
 				// scrollTo = null
 				// _.each(letters, function (b) {
@@ -315,11 +315,11 @@ function drawSenseInputScreen(senseCounts) {
 		  //   			b.css('background', 'white')
 			 //    	}
 				// })
-			}
-			ontouch = function () {
-				$('body').empty().append(drawWordList(words, scrollTo))
-			}
-		}
+		// 	}
+		// 	ontouch = function () {
+		// 		$('body').empty().append(drawWordList(words, scrollTo))
+		// 	}
+		// }
 	}
 
 	var x = _.map(senses, function (s) {
