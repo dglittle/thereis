@@ -27,20 +27,57 @@ th, td {
 <script src="/static/wordcloud2.js"></script>
 <script>
 
-// todo:
-// - (test) make tilting screen not make it tilt
+///
+
+var tau = Math.PI * 2
+
+function createVec(a) {
+	return [a.x, a.y]
+}
+
+function sub(a, b) {
+    return [a[0] - b[0], a[1] - b[1]]
+}
+
+function dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1]
+}
+
+function cross(a, b) {
+	return a[0] * b[1] - a[1] * b[0]
+}
+
+function mag(a) {
+	return Math.sqrt(dot(a, a))
+}
+
+function angleBetween(a, b) {
+	return Math.acos(dot(a, b) / mag(a) / mag(b))
+}
+
+///
 
 ontouch = null
+ontouchmove = null
 touch_gesture_region = 1000000
 function initTouch() {
 	var touchstart = null
 	var touchend = null
+
+	var touches = []
+	var angleAgg = 0
+
 	document.addEventListener('touchstart', function(e) {
 	    var touch = e.touches[0]
 	    var tx = touch.pageX
 	    var ty = touch.pageY
 	    touchstart = { x : tx, y : ty }
 	    touchend = { x : tx, y : ty }
+
+		touches = []
+	    touches.push(touchstart)
+		angleAgg = 0
+
 	    if (ty > touch_gesture_region)
 		    e.preventDefault()
 	}, false)
@@ -49,6 +86,21 @@ function initTouch() {
 	    var tx = touch.pageX
 	    var ty = touch.pageY
 	    touchend = { x : tx, y : ty }
+
+	    touches.push(touchend)
+	    if (touches.length >= 3) {
+	    	var A = createVec(touches[touches.length - 3])
+	    	var B = createVec(touches[touches.length - 2])
+	    	var C = createVec(touches[touches.length - 1])
+	    	var AB = sub(B, A)
+	    	var BC = sub(C, B)
+		    var angleDiff = angleBetween(AB, BC)
+		    if (cross(AB, BC) < 0) angleDiff *= -1
+	    	if (angleDiff > -tau && angleDiff < tau)
+	    		angleAgg += angleDiff
+	    }
+	    if (ontouchmove) ontouchmove(touchend.x, touchend.y, angleAgg)
+
 	    if (ty > touch_gesture_region)
 		    e.preventDefault()
 	}, false)
@@ -64,7 +116,9 @@ function initTouch() {
 	}, false)
 }
 
-function drawSenseInputScreen() {
+function drawSenseInputScreen(senseCounts) {
+	senseCounts = senseCounts || {}
+
 	var w = $(window).width()
 	var h = $(window).height()
 	var squareSize = Math.min(w, h)
@@ -84,7 +138,6 @@ function drawSenseInputScreen() {
 		].join('\n')
 	}
 	var senses = g_user.buttons.split('\n').slice(0, 9)
-	var senseCounts = {}
 
 	var oldRandom = Math.random
 	Math.randomSeed(5006)
@@ -146,6 +199,97 @@ function drawSenseInputScreen() {
     		if (b.ontouch) b.ontouch()
 		}
 	}
+	function drawWordList(words, scrollTo) {
+		touch_gesture_region = 1000000
+		ontouch = null
+		ontouchmove = null
+		var d = $('<div style="width:100%"/>')
+		var scrollTop = null
+		var y = 0
+		var prevLetter = 'z'
+		_.each(words, function (word) {
+			if (scrollTo && scrollTop == null && word.toLowerCase() > scrollTo.toLowerCase()) {
+				scrollTop = y
+			}
+			var h = 35
+			if (word[0].toLowerCase() != prevLetter) {
+				prevLetter = word[0].toLowerCase()
+				var dd = $('<div style="width:100%;background:lightgrey;height:' + h + 'px"/>')
+				dd.append($('<div style="padding:5px;font-weight:bold"/>').text(prevLetter.toUpperCase()))
+				d.append(dd)
+				y += h
+			}
+			var dd = $('<div style="width:100%;background:white;height:' + h + 'px"/>')
+			dd.append($('<div style="padding:5px"/>').text(word))
+			d.append(dd)
+			y += h
+
+			dd.click(function () {
+				_.bagAdd(senseCounts, word)
+				$('body').empty().append(drawSenseInputScreen(senseCounts))
+			})
+		})
+		var scrollThing = $('<div style="width:100%;height:100%;overflow:auto">').append(d)
+		if (scrollTop) {
+			setTimeout(function () {
+				scrollThing.animate({
+					scrollTop : scrollTop
+				}, 0)
+			}, 0)
+		}
+		return _.splitVert(2, 1, $('<button style="width:100%"/>').text('cancel').click(function () {
+			$('body').empty().append(drawSenseInputScreen(senseCounts))
+		}), scrollThing)
+	}
+	ontouchmove = function (tx, ty, angleAgg) {
+		if (Math.abs(angleAgg) > tau / 2) {
+			var d = $('<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:white;z-index:10000"/>')
+			$('body').append(d)
+
+			var size = Math.min(w, h) / 10
+			var spiralGap = size * .25
+			var letters = []
+			_.each(_.range(26), function (i) {
+				var t = Math.sqrt((i + .4) * 11)
+				var x = (w / 2) + (spiralGap * t * Math.cos(t)) * (angleAgg > 0 ? 1 : -1)
+				var y = (h / 2) + spiralGap * t * Math.sin(t)
+
+				var a = String.fromCharCode('A'.charCodeAt(0) + i)
+				var dd = $('<div/>').css({
+					position : 'absolute',
+					left : (x - (size / 2)) + 'px',
+					top : (y - (size / 2)) + 'px',
+					width : size + 'px',
+					height : size + 'px',
+					border : '1px solid black',
+
+					'-moz-border-radius': Math.floor(size / 4) + 'px',
+					'border-radius': Math.floor(size / 4) + 'px'				
+				}).append(center($('<div/>').text(a)))
+				letters.push(dd)
+				d.append(dd)
+			})
+
+			var scrollTo = null
+			ontouchmove = function (tx, ty) {
+				scrollTo = null
+				_.each(letters, function (b) {
+					var pos = b.offset()
+			    	var bx = pos.left
+			    	var by = pos.top
+			    	if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
+			    		b.css('background', 'lightblue')
+			    		scrollTo = b.text()
+			    	} else {
+		    			b.css('background', 'white')
+			    	}
+				})
+			}
+			ontouch = function () {
+				$('body').empty().append(drawWordList(words, scrollTo))
+			}
+		}
+	}
 
 	var x = _.map(senses, function (s) {
 		return drawButton(s, senseColors[s])
@@ -155,6 +299,7 @@ function drawSenseInputScreen() {
 	var top = $('<div style="width:100%"/>')
 	top.append($('<button style="width:20%;font-size:large"/>').text('edit').click(function () {
 		touch_gesture_region = 1000000
+		ontouchmove = null
 		ontouch = function () {}
 		var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
 		var cancel = $('<button style="width:50%;font-size:large">').text('cancel').click(function () {
@@ -186,6 +331,7 @@ function drawSenseInputScreen() {
 	done.ontouch = function () {
 		$('body').empty().append(drawCloud(senseCounts, w, h))
 		touch_gesture_region = 0
+		ontouchmove = null
 		ontouch = function () {
 			$('body').empty().append(drawSenseInputScreen())
 		}
@@ -309,6 +455,257 @@ $(function () {
 		}
 	})
 })
+
+var words = [
+    "aardvark",
+    "abyssinian",
+    "accelerator",
+    "accordion",
+    "account",
+    "accountant",
+    "acknowledgment",
+    "acoustic",
+    "acrylic",
+    "act",
+    "babies",
+    "baboon",
+    "baby",
+    "back",
+    "backbone",
+    "bacon",
+    "badge",
+    "badger",
+    "bag",
+    "bagel",
+    "cabbage",
+    "cabinet",
+    "cable",
+    "cactus",
+    "cafe",
+    "cake",
+    "calculator",
+    "calculus",
+    "calendar",
+    "calf",
+    "dad",
+    "daffodil",
+    "dahlia",
+    "daisy",
+    "damage",
+    "dance",
+    "dancer",
+    "danger",
+    "daniel",
+    "dash",
+    "eagle",
+    "ear",
+    "earth",
+    "earthquake",
+    "ease",
+    "east",
+    "edge",
+    "edger",
+    "editor",
+    "editorial",
+    "face",
+    "facilities",
+    "fact",
+    "factory",
+    "fahrenheit",
+    "fairies",
+    "fall",
+    "family",
+    "fan",
+    "fang",
+    "galley",
+    "gallon",
+    "game",
+    "gander",
+    "garage",
+    "garden",
+    "garlic",
+    "gas",
+    "gasoline",
+    "gate",
+    "hacksaw",
+    "hail",
+    "hair",
+    "haircut",
+    "halibut",
+    "hall",
+    "hallway",
+    "hamburger",
+    "hammer",
+    "husband",
+    "ice",
+    "icebreaker",
+    "icicle",
+    "icon",
+    "idea",
+    "ikebana",
+    "illegal",
+    "imprisonment",
+    "improvement",
+    "in",
+    "jacket",
+    "jaguar",
+    "jail",
+    "jam",
+    "james",
+    "january",
+    "japan",
+    "japanese",
+    "jar",
+    "jasmine",
+    "kale",
+    "kamikaze",
+    "kangaroo",
+    "karate",
+    "karen",
+    "kayak",
+    "kendo",
+    "kenneth",
+    "kenya",
+    "ketchup",
+    "laborer",
+    "lace",
+    "ladybug",
+    "lake",
+    "lamb",
+    "lamp",
+    "lan",
+    "land",
+    "landmine",
+    "law",
+    "macaroni",
+    "machine",
+    "macrame",
+    "magazine",
+    "magic",
+    "magician",
+    "maid",
+    "mail",
+    "mailbox",
+    "mailman",
+    "nail",
+    "name",
+    "nancy",
+    "napkin",
+    "narcissus",
+    "nation",
+    "neck",
+    "need",
+    "needle",
+    "neon",
+    "oak",
+    "oatmeal",
+    "objective",
+    "oboe",
+    "observation",
+    "occupation",
+    "ocean",
+    "ocelot",
+    "octagon",
+    "octave",
+    "package",
+    "packet",
+    "page",
+    "pail",
+    "pain",
+    "paint",
+    "pair",
+    "pajama",
+    "pakistan",
+    "palm",
+    "quail",
+    "quality",
+    "quart",
+    "quarter",
+    "quartz",
+    "queen",
+    "question",
+    "quicksand",
+    "quiet",
+    "quill",
+    "rabbi",
+    "rabbit",
+    "racing",
+    "radar",
+    "radiator",
+    "radio",
+    "radish",
+    "raft",
+    "rail",
+    "railway",
+    "sack",
+    "sagittarius",
+    "sail",
+    "sailboat",
+    "sailor",
+    "salad",
+    "salary",
+    "sale",
+    "salesman",
+    "salmon",
+    "table",
+    "tablecloth",
+    "tabletop",
+    "tachometer",
+    "tadpole",
+    "tail",
+    "tailor",
+    "taiwan",
+    "talk",
+    "tank",
+    "uganda",
+    "ukraine",
+    "ukrainian",
+    "umbrella",
+    "uncle",
+    "underclothes",
+    "underpants",
+    "undershirt",
+    "underwear",
+    "unit",
+    "vacation",
+    "vacuum",
+    "valley",
+    "value",
+    "van",
+    "vase",
+    "vault",
+    "vegetable",
+    "vegetarian",
+    "veil",
+    "waiter",
+    "waitress",
+    "walk",
+    "wall",
+    "wallaby",
+    "wallet",
+    "walrus",
+    "war",
+    "warm",
+    "wife",
+    "xylophone",
+    "yacht",
+    "yak",
+    "yam",
+    "yard",
+    "yarn",
+    "year",
+    "yellow",
+    "yew",
+    "yogurt",
+    "yoke",
+    "zebra",
+    "zephyr",
+    "zinc",
+    "zipper",
+    "zone",
+    "zoo",
+    "zoology"
+]
 
 </script>
 </body>
