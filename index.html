@@ -243,7 +243,21 @@ function drawSenseInputScreen(senseCounts) {
 			$('body').empty().append(drawSenseInputScreen(senseCounts))
 		}), scrollThing)
 	}
-	ontouchmove = function (tx, ty, angleAgg) {
+
+
+	// work here
+	var blar = $('<div style="position:absolute;left:0px;top:0px;z-index:1000"/>').text('hi')
+	$('body').append(blar)
+
+	ontouchmove = function (tx, ty, angleAgg, touch) {
+
+		// work here
+		var s = ''
+		for (var k in touch) {
+			s = s + ', ' + k
+		}
+		blar.text('bl: ' + s)
+
 		if (Math.abs(angleAgg) > tau / 2) {
 			// work here
 			var d = $('<div style="position:absolute;left:0;top:0;z-index:10000"/>')
