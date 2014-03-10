@@ -3,7 +3,7 @@ tau = Math.PI * 2
 
 ///
 
-function onError(msg) {
+function error(msg) {
     alert((msg || 'Oops. Not sure what happened.') + '\n\n' +
         'Please try refreshing the page.')
 }

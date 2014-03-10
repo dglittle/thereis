@@ -42,7 +42,10 @@ mturkRequest = function (id, secret, sandbox, params) {
 
 ///
 
-createServer = function (express, app, db, port, session_secret, rpc_version, rpc) {
+createServer = function (db, port, session_secret, rpc_version, rpc) {
+
+    var express = require('express')
+    var app = express()
 
     _.serveOnExpress(express, app)
 
@@ -113,7 +116,10 @@ createServer = function (express, app, db, port, session_secret, rpc_version, rp
         showStack: true
     }))
 
-    app.listen(port, function() {
+    var server = require('http').createServer(app)
+    server.listen(port, function() {
         console.log("go to http://localhost:" + port)
     })
+
+    return server
 }

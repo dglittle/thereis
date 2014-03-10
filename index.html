@@ -29,6 +29,32 @@ th, td {
 
 ///
 
+function openSocket(cb) {
+    var ws = new (WebSocket || MozWebSocket)(location.origin.replace(/^http/, 'ws'))
+    ws.onopen = function (e) {
+        ws.send(_.json({
+            type : 'join'
+        }))
+    }
+    ws.onmessage = function (e) {
+        var msg = _.unJson(e.data)
+        if (msg.type == 'keepAlive') {
+        } else if (msg.type == 'text') {
+            cb(msg.text)
+        }
+    }
+    ws.onclose = function () { error() }
+    ws.onerror = function () { error() }
+    return function (text) {
+        ws.send(_.json({
+            type : 'text',
+            text : text
+        }))
+    }
+}
+
+///
+
 var tau = Math.PI * 2
 
 function createVec(a) {
@@ -118,6 +144,10 @@ function initTouch() {
 
 function drawSenseInputScreen(senseCounts) {
     senseCounts = senseCounts || {}
+    function addSenseCount(sense) {
+        _.bagAdd(senseCounts, sense)
+        g_socketSend(sense)
+    }
 
     var w = $(window).width()
     var h = $(window).height()
@@ -162,11 +192,12 @@ function drawSenseInputScreen(senseCounts) {
 
     var buttons = []
     function drawButton(text, colors) {
-        var d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
+        var d = null
         if (text) {
+            d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
             d.css('background', colors[0])
             d.ontouch = function () {
-                _.bagAdd(senseCounts, text)
+                addSenseCount(text)
 
                 var snd = senseSounds[text]
                 if (snd) {
@@ -177,6 +208,22 @@ function drawSenseInputScreen(senseCounts) {
                 setTimeout(function () {
                     d.css('background', colors[0])
                 }, 100)
+            }
+        } else {
+            d = $('<div style="width:100%;height:100%;vertical-align:top;overflow:hidden"/>')
+            g_socketOnText = function (text) {
+                var fader = $('<div/>').text(text)
+                var fadeAmount = 1
+                function doFade() {
+                    fader.css('color', 'rgba(0,0,0,' + fadeAmount + ')')
+                    if (fadeAmount > 0.01) {
+                        fadeAmount -= .333
+                        setTimeout(doFade, 2000)
+                    }
+                }
+                doFade()
+                d.prepend(fader)
+                d.children().slice(5).remove()
             }
         }
         buttons.push(d)
@@ -226,7 +273,7 @@ function drawSenseInputScreen(senseCounts) {
             y += h
 
             dd.click(function () {
-                _.bagAdd(senseCounts, word)
+                addSenseCount(word)
                 $('body').empty().append(drawSenseInputScreen(senseCounts))
             })
         })
@@ -359,7 +406,7 @@ function drawSenseInputScreen(senseCounts) {
     var input = $('<input type="text" style="width:60%;font-size:large"/>')
     top.append(input)
     top.append($('<button style="width:20%;font-size:large"/>').text('note').click(function () {
-        _.bagAdd(senseCounts, input.val())
+        addSenseCount(input.val())
         input.val('')
     }))
 
@@ -454,6 +501,11 @@ $(function () {
     initTouch()
 
     initAudio()
+
+    g_socketOnText = null
+    g_socketSend = openSocket(function (text) {
+        if (g_socketOnText) g_socketOnText(text)
+    })
 
     // from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
     $(window).bind('orientationchange', function() {

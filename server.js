@@ -9,8 +9,6 @@ _.run(function () {
     defaultEnv("SESSION_SECRET", "super_secret")
 
     var db = require('mongojs')(process.env.MONGOHQ_URL)
-    var express = require('express')
-    var app = express()
     var rpc_version = 1
     var rpc = {}
 
@@ -36,8 +34,36 @@ _.run(function () {
         return _.p(db.collection('clouds').find({ user : arg }).sort({ _id : -1 }).limit(10, _.p()))
     }
 
-    createServer(express, app, db,
+    var server = createServer(db,
         process.env.PORT, process.env.SESSION_SECRET,
         rpc_version, rpc)
 
+    var liveUsers = []
+    var wss = new (require('ws').Server)({ server : server })
+    wss.on('connection', function (ws) {
+        ws.on('message', function (msg) {
+            _.run(function () {
+                msg = _.unJson(msg)
+                if (msg.type == 'join') {
+                    liveUsers.push(ws)
+                } else if (msg.type == 'text') {
+                    _.each(liveUsers, function (u) {
+                        if (u != ws) {
+                            u.send(_.json(msg))
+                        }
+                    })
+                }
+            })
+        })
+
+        var keepAlive = setInterval(function() {
+            ws.send(_.json({ type : 'keepAlive' }))
+        }, 20 * 1000)
+        ws.on('close', function () {
+            _.run(function () {
+                clearInterval(keepAlive)
+                liveUsers.splice(liveUsers.indexOf(ws), 1)
+            })
+        })
+    })
 })
