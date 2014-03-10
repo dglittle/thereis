@@ -32,7 +32,7 @@ th, td {
 var tau = Math.PI * 2
 
 function createVec(a) {
-	return [a.x, a.y]
+    return [a.x, a.y]
 }
 
 function sub(a, b) {
@@ -44,15 +44,15 @@ function dot(a, b) {
 }
 
 function cross(a, b) {
-	return a[0] * b[1] - a[1] * b[0]
+    return a[0] * b[1] - a[1] * b[0]
 }
 
 function mag(a) {
-	return Math.sqrt(dot(a, a))
+    return Math.sqrt(dot(a, a))
 }
 
 function angleBetween(a, b) {
-	return Math.acos(dot(a, b) / mag(a) / mag(b))
+    return Math.acos(dot(a, b) / mag(a) / mag(b))
 }
 
 ///
@@ -61,412 +61,437 @@ ontouch = null
 my_ontouchmove = null
 touch_gesture_region = 1000000
 function initTouch() {
-	var touchstart = null
-	var touchend = null
+    var touchstart = null
+    var touchend = null
 
-	var touches = []
-	var angleAgg = 0
+    var touches = []
+    var angleAgg = 0
 
-	document.addEventListener('touchstart', function(e) {
-	    var touch = e.touches[0]
-	    var tx = touch.pageX
-	    var ty = touch.pageY
-	    touchstart = { x : tx, y : ty }
-	    touchend = { x : tx, y : ty }
+    document.addEventListener('touchstart', function(e) {
+        var touch = e.touches[0]
+        var tx = touch.pageX
+        var ty = touch.pageY
+        touchstart = { x : tx, y : ty }
+        touchend = { x : tx, y : ty }
 
-		touches = []
-	    touches.push(touchstart)
-		angleAgg = 0
+        touches = []
+        touches.push(touchstart)
+        angleAgg = 0
 
-	    if (ty > touch_gesture_region)
-		    e.preventDefault()
-	}, false)
-	document.addEventListener('touchmove', function(e) {
-	    var touch = e.touches[0]
-	    var tx = touch.pageX
-	    var ty = touch.pageY
-	    touchend = { x : tx, y : ty }
+        if (ty > touch_gesture_region)
+            e.preventDefault()
+    }, false)
+    document.addEventListener('touchmove', function(e) {
+        var touch = e.touches[0]
+        var tx = touch.pageX
+        var ty = touch.pageY
+        touchend = { x : tx, y : ty }
 
-	    touches.push(touchend)
-	    if (touches.length >= 3) {
-	    	var A = createVec(touches[touches.length - 3])
-	    	var B = createVec(touches[touches.length - 2])
-	    	var C = createVec(touches[touches.length - 1])
-	    	var AB = sub(B, A)
-	    	var BC = sub(C, B)
-		    var angleDiff = angleBetween(AB, BC)
-		    if (cross(AB, BC) < 0) angleDiff *= -1
-	    	if (angleDiff > -tau && angleDiff < tau)
-	    		angleAgg += angleDiff
-	    }
-	    if (my_ontouchmove) my_ontouchmove(touchend.x, touchend.y, angleAgg)
+        touches.push(touchend)
+        if (touches.length >= 3) {
+            var A = createVec(touches[touches.length - 3])
+            var B = createVec(touches[touches.length - 2])
+            var C = createVec(touches[touches.length - 1])
+            var AB = sub(B, A)
+            var BC = sub(C, B)
+            var angleDiff = angleBetween(AB, BC)
+            if (cross(AB, BC) < 0) angleDiff *= -1
+            if (angleDiff > -tau && angleDiff < tau)
+                angleAgg += angleDiff
+        }
+        if (my_ontouchmove) my_ontouchmove(touchend.x, touchend.y, angleAgg)
 
-	    if (ty > touch_gesture_region)
-		    e.preventDefault()
-	}, false)
-	document.addEventListener('touchend', function(e) {
-	    // e.preventDefault()
-	    var dx = touchend.x - touchstart.x
-	    var dy = touchend.y - touchstart.y
-	    var dist = Math.sqrt(dx * dx + dy * dy)
-	    var angle = Math.atan2(-dy, dx)
-	    if (angle < 0) angle = tau + angle
-	    angle = Math.floor((angle + tau/16) / (tau/8)) % 8
-	    if (ontouch) ontouch(touchend.x, touchend.y, dist < 6 ? -1 : angle)
-	}, false)
+        if (ty > touch_gesture_region)
+            e.preventDefault()
+    }, false)
+    document.addEventListener('touchend', function(e) {
+        // e.preventDefault()
+        var dx = touchend.x - touchstart.x
+        var dy = touchend.y - touchstart.y
+        var dist = Math.sqrt(dx * dx + dy * dy)
+        var angle = Math.atan2(-dy, dx)
+        if (angle < 0) angle = tau + angle
+        angle = Math.floor((angle + tau/16) / (tau/8)) % 8
+        if (ontouch) ontouch(touchend.x, touchend.y, dist < 6 ? -1 : angle)
+    }, false)
 }
 
 function drawSenseInputScreen(senseCounts) {
-	senseCounts = senseCounts || {}
+    senseCounts = senseCounts || {}
 
-	var w = $(window).width()
-	var h = $(window).height()
-	var squareSize = Math.min(w, h)
+    var w = $(window).width()
+    var h = $(window).height()
+    var squareSize = Math.min(w, h)
 
-	var square = $('<div/>')
-	square.css({
-		width : squareSize,
-		height : squareSize,
-		background : 'white'
-	})
+    var square = $('<div/>')
+    square.css({
+        width : squareSize,
+        height : squareSize,
+        background : 'white'
+    })
 
-	if (!g_user.buttons) {
-		g_user.buttons = [
-			'', 'seeing', 'other',
-			'thinking', '', 'hearing',
-			'tasting', 'feeling', 'smelling'
-		].join('\n')
-	}
-	var senses = g_user.buttons.split('\n').slice(0, 9)
+    //Button label defaults
+    if (!g_user.buttons) {
+        g_user.buttons = [
+            'other', 'seeing', 'pos-emotion',
+            'thinking', '', 'hearing',
+            'neg-emotion', 'feeling', 'smelling-tasting'
+        ].join('\n')
+    }
+    var senses = g_user.buttons.split('\n').slice(0, 9)
 
-	var oldRandom = Math.random
-	Math.randomSeed(5006)
-	var senseColors = {}
-	_.each(senses, function (s) {
-		var color = _.shuffle([200, _.randomInt(128, 200), 128])
-		var highlight = _.map(color, function (x) { return Math.round(_.lerp(128, 160, 200, 255, x)) })
-		function rgb(c) {
-			return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'
-		}
-		senseColors[s] = [rgb(color), rgb(highlight)]
-	})
-	Math.random = oldRandom
+    var oldRandom = Math.random
+    Math.randomSeed(5006)
+    var senseColors = {}
+    _.each(senses, function (s) {
+        var color = _.shuffle([200, _.randomInt(128, 200), 128])
+        var highlight = _.map(color, function (x) { return Math.round(_.lerp(128, 160, 200, 255, x)) })
+        function rgb(c) {
+            return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'
+        }
+        senseColors[s] = [rgb(color), rgb(highlight)]
+    })
+    Math.random = oldRandom
 
-	senseSounds = {
-		'feeling' : createSound('/static/feeling.wav'),
-		'thinking' : createSound('/static/thinking.wav'),
-		'seeing' : createSound('/static/seeing.wav'),
-		'hearing' : createSound('/static/hearing.wav')
-	}
+    senseSounds = {
+        'feeling' : createSound('/static/feeling.wav'),
+        'thinking' : createSound('/static/thinking.wav'),
+        'seeing' : createSound('/static/seeing.wav'),
+        'hearing' : createSound('/static/hearing.wav')
+    }
 
-	var buttons = []
-	function drawButton(text, colors) {
-		var d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
-		if (text) {
-			d.css('background', colors[0])
-			d.ontouch = function () {
-				_.bagAdd(senseCounts, text)
+    var buttons = []
+    function drawButton(text, colors) {
+        var d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
+        if (text) {
+            d.css('background', colors[0])
+            d.ontouch = function () {
+                _.bagAdd(senseCounts, text)
 
-				var snd = senseSounds[text]
-				if (snd) {
-					snd.play()
-				}
+                var snd = senseSounds[text]
+                if (snd) {
+                    snd.play()
+                }
 
-				d.css('background', colors[1])
-				setTimeout(function () {
-					d.css('background', colors[0])
-				}, 100)
-			}
-		}
-		buttons.push(d)
-		return d
-	}
+                d.css('background', colors[1])
+                setTimeout(function () {
+                    d.css('background', colors[0])
+                }, 100)
+            }
+        }
+        buttons.push(d)
+        return d
+    }
 
-	touch_gesture_region = Math.floor((h - squareSize) / 2)
-	ontouch = function (tx, ty, dir) {
-		if (dir < 0) {
-		    _.each(buttons, function (b) {
-		    	var pos = b.offset()
-		    	var bx = pos.left
-		    	var by = pos.top
-		    	if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
-		    		if (b.ontouch) b.ontouch()
-		    	}
-		    })
-		} else {
-			var mapper = [5, 2, 1, 0, 3, 6, 7, 8]
-			var b = buttons[mapper[dir]]
-    		if (b.ontouch) b.ontouch()
-		}
-	}
-	function drawWordList(words, scrollTo) {
-		touch_gesture_region = 1000000
-		ontouch = null
-		my_ontouchmove = null
-		var d = $('<div style="width:100%"/>')
-		var scrollTop = null
-		var y = 0
-		var prevLetter = 'z'
-		_.each(words, function (word) {
-			if (scrollTo && scrollTop == null && word.toLowerCase() > scrollTo.toLowerCase()) {
-				scrollTop = y
-			}
-			var h = 35
-			if (word[0].toLowerCase() != prevLetter) {
-				prevLetter = word[0].toLowerCase()
-				var dd = $('<div style="width:100%;background:lightgrey;height:' + h + 'px"/>')
-				dd.append($('<div style="padding:5px;font-weight:bold"/>').text(prevLetter.toUpperCase()))
-				d.append(dd)
-				y += h
-			}
-			var dd = $('<div style="width:100%;background:white;height:' + h + 'px"/>')
-			dd.append($('<div style="padding:5px"/>').text(word))
-			d.append(dd)
-			y += h
+    touch_gesture_region = Math.floor((h - squareSize) / 2)
+    ontouch = function (tx, ty, dir) {
+        if (dir < 0) {
+            _.each(buttons, function (b) {
+                var pos = b.offset()
+                var bx = pos.left
+                var by = pos.top
+                if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
+                    if (b.ontouch) b.ontouch()
+                }
+            })
+        } else {
+            var mapper = [5, 2, 1, 0, 3, 6, 7, 8]
+            var b = buttons[mapper[dir]]
+            if (b.ontouch) b.ontouch()
+        }
+    }
+    function drawWordList(words, scrollTo) {
+        touch_gesture_region = 1000000
+        ontouch = null
+        my_ontouchmove = null
+        var d = $('<div style="width:100%"/>')
+        var scrollTop = null
+        var y = 0
+        var prevLetter = 'z'
+        _.each(words, function (word) {
+            if (scrollTo && scrollTop == null && word.toLowerCase() > scrollTo.toLowerCase()) {
+                scrollTop = y
+            }
+            var h = 35
+            if (word[0].toLowerCase() != prevLetter) {
+                prevLetter = word[0].toLowerCase()
+                var dd = $('<div style="width:100%;background:lightgrey;height:' + h + 'px"/>')
+                dd.append($('<div style="padding:5px;font-weight:bold"/>').text(prevLetter.toUpperCase()))
+                d.append(dd)
+                y += h
+            }
+            var dd = $('<div style="width:100%;background:white;height:' + h + 'px"/>')
+            dd.append($('<div style="padding:5px"/>').text(word))
+            d.append(dd)
+            y += h
 
-			dd.click(function () {
-				_.bagAdd(senseCounts, word)
-				$('body').empty().append(drawSenseInputScreen(senseCounts))
-			})
-		})
-		var scrollThing = $('<div style="width:100%;height:100%;overflow:auto">').append(d)
-		if (scrollTop) {
-			setTimeout(function () {
-				scrollThing.animate({
-					scrollTop : scrollTop
-				}, 0)
-			}, 0)
-		}
-		return _.splitVert(2, 1, $('<button style="width:100%"/>').text('cancel').click(function () {
-			$('body').empty().append(drawSenseInputScreen(senseCounts))
-		}), scrollThing)
-	}
-	my_ontouchmove = function (tx, ty, angleAgg) {
-		if (Math.abs(angleAgg) > tau / 2) {
-			var d = $('<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:white;z-index:10000"/>')
-			$('body').append(d)
+            dd.click(function () {
+                _.bagAdd(senseCounts, word)
+                $('body').empty().append(drawSenseInputScreen(senseCounts))
+            })
+        })
+        var scrollThing = $('<div style="width:100%;height:100%;overflow:auto">').append(d)
+        if (scrollTop) {
+            setTimeout(function () {
+                scrollThing.animate({
+                    scrollTop : scrollTop
+                }, 0)
+            }, 0)
+        }
+        return _.splitVert(2, 1, $('<button style="width:100%"/>').text('cancel').click(function () {
+            $('body').empty().append(drawSenseInputScreen(senseCounts))
+        }), scrollThing)
+    }
+    my_ontouchmove = function (tx, ty, angleAgg) {
+        if (Math.abs(angleAgg) > tau / 2) {
+            var d = $('<div style="position:absolute;left:0;top:0;width:100%;height:100%;background:white;z-index:10000"/>')
+            $('body').append(d)
 
-			var size = Math.min(w, h) / 10
-			var spiralGap = size * .25
-			var letters = []
-			_.each(_.range(26), function (i) {
-				var t = Math.sqrt((i + .4) * 11)
-				var x = (w / 2) + (spiralGap * t * Math.cos(t)) * (angleAgg > 0 ? 1 : -1)
-				var y = (h / 2) + spiralGap * t * Math.sin(t)
+            var size = Math.min(w, h) * .12
+            var spiralGap = size * .25
+            var letters = []
+            _.each(_.range(26), function (i) {
+                var t = Math.sqrt((i + .4) * 11)
 
-				var a = String.fromCharCode('A'.charCodeAt(0) + i)
-				var dd = $('<div/>').css({
-					position : 'absolute',
-					left : (x - (size / 2)) + 'px',
-					top : (y - (size / 2)) + 'px',
-					width : size + 'px',
-					height : size + 'px'
-				}).append($('<div/>').css({
-					width : size + 'px',
-					height : size + 'px',
-					border : '1px solid black',
+                //var x = (w / 2) + (spiralGap * t * Math.cos(t)) * (angleAgg > 0 ? 1 : -1)
 
-					'-moz-border-radius': Math.floor(size / 4) + 'px',
-					'border-radius': Math.floor(size / 4) + 'px'				
-				}).append(center($('<div/>').text(a))))
-				letters.push(dd)
-				d.append(dd)
-			})
+                if (angleAgg > 0) {
+                    //adjust nautilus x axis
+                    var x = (w / 2) + (size * .35) + (spiralGap * t * Math.cos(t)) * (angleAgg > 0 ? 1 : -1)
+                } else {
+                    var x = (w / 2) + -(size * .45) + (spiralGap * t * Math.cos(t)) * (angleAgg > 0 ? 1 : -1)
+                }
+                var y = (h / 2) + spiralGap * t * Math.sin(t)
 
-			var scrollTo = null
-			my_ontouchmove = function (tx, ty) {
-				scrollTo = null
-				_.each(letters, function (b) {
-					var pos = b.offset()
-			    	var bx = pos.left
-			    	var by = pos.top
-			    	if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
-			    		b.css({
-			    			'z-index' : 1000
-			    		}).children().css({
-			    			'background' : 'lightblue',
-			    			'margin-top' : -size + 'px'
-			    		})
-			    		scrollTo = b.text()
-			    	} else {
-			    		b.css({
-			    			'z-index' : 0
-			    		}).children().css({
-		    				'background' : 'white',
-		    				'margin-top' : '0px'
-		    			})
-			    	}
-				})
-			}
-			ontouch = function () {
-				$('body').empty().append(drawWordList(angleAgg > 0 ? emotions : sensations, scrollTo))
-			}
-		}
-	}
+                var a = String.fromCharCode('A'.charCodeAt(0) + i)
+                var dd = $('<div/>').css({
+                    position : 'absolute',
+                    left : (x - (size / 2)) + 'px',
+                    top : (y - (size / 2)) + 'px',
+                    width : size + 'px',
+                    height : size + 'px'
+                }).append($('<div/>').css({
+                    width : size + 'px',
+                    height : size + 'px',
+                    border : '1px solid black',
 
-	var x = _.map(senses, function (s) {
-		return drawButton(s, senseColors[s])
-	})
-	square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
+                    '-moz-border-radius': Math.floor(size / 4) + 'px',
+                    'border-radius': Math.floor(size / 4) + 'px'
+                }).append(center($('<div/>').text(a))))
+                letters.push(dd)
+                d.append(dd)
+            })
 
-	var top = $('<div style="width:100%"/>')
-	top.append($('<button style="width:20%;font-size:large"/>').text('edit').click(function () {
-		touch_gesture_region = 1000000
-		my_ontouchmove = null
-		ontouch = function () {}
-		var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
-		var cancel = $('<button style="width:50%;font-size:large">').text('cancel').click(function () {
-			$('body').empty().append(drawSenseInputScreen())
-		})
-		var save = $('<button style="width:50%;font-size:large">').text('save').click(function () {
-			$('body').empty().append(createThrobber())
-			g_user.buttons = edit.val()
-			rpc('saveButtons', {
-				user : g_user._id,
-				buttons : g_user.buttons
-			}, function () {
-				$('body').empty().append(drawSenseInputScreen())
-			})
-		})
+            var scrollTo = null
+            //this next function is called when finger moves on nautilus
+            my_ontouchmove = function (tx, ty) {
+                scrollTo = null
+                _.each(letters, function (b) {
+                    var pos = b.offset()
+                    var bx = pos.left
+                    var by = pos.top
+                    if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
+                        b.css({
+                            'z-index' : 1000
+                        }).children().css({
+                            'background' : 'lightblue',
+                            //position popups on y axis
+                            'margin-top' : -(size*1.7) + 'px',
+                            //popup letter box size
+                            'width' : size*1.6 + 'px',
+                            'height' : size*1.6 + 'px',
+                            //position popups on x axis
+                            'margin-left' : -(size*.3) + 'px',
+                            //set letter size in popups
+                            'font-size' : 'x-large',
+                        })
+                        scrollTo = b.text()
+                    } else {
+                        b.css({
+                            'z-index' : 0
+                        }).children().css({
+                            'background' : 'white',
+                            'margin-top' : '0px',
 
-		$('body').empty().append(_.splitVert(2, 1, $('<div/>').append(cancel).append(save), edit))
-	}))
-	var input = $('<input type="text" style="width:60%;font-size:large"/>')
-	top.append(input)
-	top.append($('<button style="width:20%;font-size:large"/>').text('note').click(function () {
-		_.bagAdd(senseCounts, input.val())
-		input.val('')
-	}))
+                            'width' : size + 'px',
+                            'height' : size + 'px',
+                            'margin-left' : '0px'
+                        })
+                    }
+                })
+            }
+
+            ontouch = function () {
+                if (scrollTo != null) {
+                $('body').empty().append(drawWordList(angleAgg > 0 ? emotions : sensations, scrollTo))
+                }
+            }
+        }
+    }
+
+    var x = _.map(senses, function (s) {
+        return drawButton(s, senseColors[s])
+    })
+    square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
+
+    var top = $('<div style="width:100%"/>')
+    top.append($('<button style="width:20%;font-size:large"/>').text('edit').click(function () {
+        touch_gesture_region = 1000000
+        my_ontouchmove = null
+        ontouch = function () {}
+        var edit = $('<textarea style="font-size:x-large;width:100%;height:100%"/>').val(g_user.buttons)
+        var cancel = $('<button style="width:50%;font-size:large">').text('cancel').click(function () {
+                $('body').empty().append(drawSenseInputScreen())
+        })
+        var save = $('<button style="width:50%;font-size:large">').text('save').click(function () {
+            $('body').empty().append(createThrobber())
+            g_user.buttons = edit.val()
+            rpc('saveButtons', {
+                user : g_user._id,
+                buttons : g_user.buttons
+            }, function () {
+                $('body').empty().append(drawSenseInputScreen())
+            })
+        })
+
+        $('body').empty().append(_.splitVert(2, 1, $('<div/>').append(cancel).append(save), edit))
+    }))
+    var input = $('<input type="text" style="width:60%;font-size:large"/>')
+    top.append(input)
+    top.append($('<button style="width:20%;font-size:large"/>').text('note').click(function () {
+        _.bagAdd(senseCounts, input.val())
+        input.val('')
+    }))
 
     var done = $('<table style="width:100%;height:100%"><tr><td align="center" valign="top"></td></tr></table>')
     done.find('td').append($('<div style="margin-top:20px;font-size:x-large;font-weight:bold"/>').text('done'))
-	buttons.push(done)
-	done.ontouch = function () {
-		$('body').empty().append(drawCloud(senseCounts, w, h))
-		touch_gesture_region = 0
-		my_ontouchmove = null
-		ontouch = function () {
-			$('body').empty().append(drawSenseInputScreen())
-		}
-		rpc('saveCloud', { user : g_user._id, counts : senseCounts }, function () {})
-	}
+    buttons.push(done)
+    done.ontouch = function () {
+        $('body').empty().append(drawCloud(senseCounts, w, h))
+        touch_gesture_region = 0
+        my_ontouchmove = null
+        ontouch = function () {
+            $('body').empty().append(drawSenseInputScreen())
+        }
+        rpc('saveCloud', { user : g_user._id, counts : senseCounts }, function () {})
+    }
 
-	return _.splitVert(2, 1, top, _.splitVert(2, 1, square, done))
+    return _.splitVert(2, 1, top, _.splitVert(2, 1, square, done))
 }
 
 function drawCloud(counts, w, h) {
-	var c = $('<canvas/>').attr('width', w).attr('height', h)
+    var c = $('<canvas/>').attr('width', w).attr('height', h)
 
-	var big = Math.min(w, h) / 5
-	var small = 6
-	var min = _.min(counts)
-	var max = _.max(counts)
-	sizes = _.map(counts, function (x) {
-		return _.lerp(0, small, max, big, x)
-	})
-	WordCloud(c[0], {
-		list: _.pairs(sizes),
-		minRotation: tau / 4,
-		maxRotation: tau / 4,
-		rotateRatio: .5
-	})
+    var big = Math.min(w, h) / 5
+    var small = 6
+    var min = _.min(counts)
+    var max = _.max(counts)
+    sizes = _.map(counts, function (x) {
+        return _.lerp(0, small, max, big, x)
+    })
+    WordCloud(c[0], {
+        list: _.pairs(sizes),
+        minRotation: tau / 4,
+        maxRotation: tau / 4,
+        rotateRatio: .5
+    })
 
-	return c
+    return c
 }
 
 g_audio = null
 function initAudio() {
-	try {
-		// Fix up for prefixing
-		window.AudioContext = window.AudioContext || window.webkitAudioContext
-		g_audio = new AudioContext()
-	} catch(e) {}
+    try {
+        // Fix up for prefixing
+        window.AudioContext = window.AudioContext || window.webkitAudioContext
+        g_audio = new AudioContext()
+    } catch(e) {}
 }
 
 function loadSound(url, cb) {
-	var request = new XMLHttpRequest()
-	request.open('GET', url, true)
-	request.responseType = 'arraybuffer'
+    var request = new XMLHttpRequest()
+    request.open('GET', url, true)
+    request.responseType = 'arraybuffer'
 
-	request.onload = function () {
-		g_audio.decodeAudioData(request.response, function (buffer) {
-			cb(buffer)
-		}, function () {})
-	}
-	request.send()
+    request.onload = function () {
+        g_audio.decodeAudioData(request.response, function (buffer) {
+            cb(buffer)
+        }, function () {})
+    }
+    request.send()
 }
 
 function createSound(url) {
-	var buffer = null
-	var onLoad = null
-	loadSound(url, function (b) {
-		buffer = b
-		if (onLoad) onLoad()
-	})
-	var sound = {
-		play : function () {
-			if (!buffer) {
-				onLoad = function () {
-					sound.play()
-				}
-				return
-			}
-			var source = g_audio.createBufferSource()
-			source.buffer = buffer
-			source.connect(g_audio.destination)
-			source.start(0)
-		}
-	}
-	return sound
+    var buffer = null
+    var onLoad = null
+    loadSound(url, function (b) {
+        buffer = b
+        if (onLoad) onLoad()
+    })
+    var sound = {
+        play : function () {
+            if (!buffer) {
+                onLoad = function () {
+                    sound.play()
+                }
+                return
+            }
+            var source = g_audio.createBufferSource()
+            source.buffer = buffer
+            source.connect(g_audio.destination)
+            source.start(0)
+        }
+    }
+    return sound
 }
 
 $(function () {
-	if (!_.getUrlParams()['user']) {
-		window.location.href = window.location.href + '?user=' + _.randomString(4)
-		return
-	}
+    if (!_.getUrlParams()['user']) {
+        window.location.href = window.location.href + '?user=' + _.randomString(4)
+        return
+    }
 
-	initTouch()
+    initTouch()
 
-	initAudio()
+    initAudio()
 
-	// from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
-	$(window).bind('orientationchange', function() {
-		if (window.orientation === undefined) return
-		var origin = ($(window).width() / 2) + 'px ' + ($(window).height() / 2) + 'px'
-		if (window.orientation % 180 == 0) {
-			$(document.body).css("-webkit-transform-origin", "").css("-webkit-transform", "")
-		} else {
-			if (window.orientation > 0) { //clockwise
-				$(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(-90deg)")
-			} else {
-				$(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(90deg)")
-			}
-		}
-	}).trigger('orientationchange')	
+    // from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
+    $(window).bind('orientationchange', function() {
+        if (window.orientation === undefined) return
+        var origin = ($(window).width() / 2) + 'px ' + ($(window).height() / 2) + 'px'
+        if (window.orientation % 180 == 0) {
+            $(document.body).css("-webkit-transform-origin", "").css("-webkit-transform", "")
+        } else {
+            if (window.orientation > 0) { //clockwise
+                $(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(-90deg)")
+            } else {
+                $(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(90deg)")
+            }
+        }
+    }).trigger('orientationchange')        
 
-	rpc('getUser', _.getUrlParams()['user'], function (user) {
-		g_user = user
+    rpc('getUser', _.getUrlParams()['user'], function (user) {
+        g_user = user
 
-		if(_.getUrlParams()['mobile'] || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-			$('body').append(drawSenseInputScreen())
-		} else {
-			rpc('getClouds', g_user._id, function (clouds) {
-				if (clouds.length == 0) {
-					$('body').append($('<div/>').text('open this url on a phone to do some noting, and come back here to see old word clouds'))
-					return
-				}
-				function drawNext() {
-					var cloud = clouds.shift()
-					if (cloud) {
-						$('body').append($('<div style="float:left"/>').append(drawCloud(cloud.counts, 400, 400)))
-						setTimeout(drawNext, 0)
-					}
-				}
-				drawNext()
-			})
-		}
-	})
+        if(_.getUrlParams()['mobile'] || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                $('body').append(drawSenseInputScreen())
+        } else {
+            rpc('getClouds', g_user._id, function (clouds) {
+                if (clouds.length == 0) {
+                    $('body').append($('<div/>').text('open this url on a phone to do some noting, and come back here to see old word clouds'))
+                    return
+                }
+                function drawNext() {
+                    var cloud = clouds.shift()
+                    if (cloud) {
+                        $('body').append($('<div style="float:left"/>').append(drawCloud(cloud.counts, 400, 400)))
+                        setTimeout(drawNext, 0)
+                    }
+                }
+                drawNext()
+            })
+        }
+    })
 })
 
 var emotions = [
@@ -486,6 +511,7 @@ var emotions = [
     "bewilderment",
     "bliss",
     "boredom",
+    "calm",
     "clarity",
     "comfort",
     "compassion",
@@ -501,6 +527,7 @@ var emotions = [
     "despair",
     "discomfort",
     "discouragement",
+    "disillusionment",
     "dissatisfaction",
     "distraction",
     "don't-know",
@@ -536,6 +563,7 @@ var emotions = [
     "ill-will",
     "inhibition",
     "insecurity",
+    "interest",
     "investigation",
     "irritability",
     "irritation",
@@ -559,6 +587,7 @@ var emotions = [
     "optimism",
     "outrage",
     "pastizing",
+    "patience",
     "peace",
     "peacefulness",
     "petulance",
