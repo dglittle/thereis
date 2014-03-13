@@ -248,35 +248,16 @@ function drawSenseInputScreen(senseCounts) {
         }
     }
     function drawWordList(words, scrollTo) {
+        var wordList = g_wordLists[words]
         touch_gesture_region = 1000000
         ontouch = null
         my_ontouchmove = null
-        var d = $('<div style="width:100%"/>')
-        var scrollTop = null
-        var y = 0
-        var prevLetter = 'z'
-        _.each(words, function (word) {
-            if (scrollTo && scrollTop == null && word.toLowerCase() > scrollTo.toLowerCase()) {
-                scrollTop = y
-            }
-            var h = 35
-            if (word[0].toLowerCase() != prevLetter) {
-                prevLetter = word[0].toLowerCase()
-                var dd = $('<div style="width:100%;background:lightgrey;height:' + h + 'px"/>')
-                dd.append($('<div style="padding:5px;font-weight:bold"/>').text(prevLetter.toUpperCase()))
-                d.append(dd)
-                y += h
-            }
-            var dd = $('<div style="width:100%;background:white;height:' + h + 'px"/>')
-            dd.append($('<div style="padding:5px"/>').text(word))
-            d.append(dd)
-            y += h
-
-            dd.click(function () {
-                addSenseCount(word)
-                $('body').empty().append(drawSenseInputScreen(senseCounts))
-            })
-        })
+        var d = wordList.d
+        wordList.cb = function (word) {
+            addSenseCount(word)
+            $('body').empty().append(drawSenseInputScreen(senseCounts))
+        }
+        var scrollTop = wordList.scrollTops[scrollTo.toLowerCase()[0]]
         var scrollThing = $('<div style="width:100%;height:100%;overflow:auto">').append(d)
         if (scrollTop) {
             setTimeout(function () {
@@ -329,10 +310,8 @@ function drawSenseInputScreen(senseCounts) {
                 d.append(dd)
             })
 
-            var scrollTo = null
             //this next function is called when finger moves on nautilus
             my_ontouchmove = function (tx, ty) {
-                scrollTo = null
                 _.each(letters, function (b) {
                     var pos = b.offset()
                     var bx = pos.left
@@ -352,7 +331,6 @@ function drawSenseInputScreen(senseCounts) {
                             //set letter size in popups
                             'font-size' : 'x-large',
                         })
-                        scrollTo = b.text()
                     } else {
                         b.css({
                             'z-index' : 0
@@ -368,9 +346,18 @@ function drawSenseInputScreen(senseCounts) {
                 })
             }
 
-            ontouch = function () {
+            ontouch = function (tx, ty) {
+                var scrollTo = null
+                _.each(letters, function (b) {
+                    var pos = b.offset()
+                    var bx = pos.left
+                    var by = pos.top
+                    if (tx >= bx && tx < bx + b.width() && ty >= by && ty < by + b.height()) {
+                        scrollTo = b.text()
+                    }
+                })
                 if (scrollTo != null) {
-                $('body').empty().append(drawWordList(angleAgg > 0 ? emotions : sensations, scrollTo))
+                    $('body').empty().append(drawWordList(angleAgg > 0 ? 'emotions' : 'sensations', scrollTo))
                 }
             }
         }
@@ -492,6 +479,50 @@ function createSound(url) {
     return sound
 }
 
+function prepWordList(words) {
+    var ret = {
+        cb : null
+    }
+    var d = $('<div style="width:100%"/>')
+    ret.d = d
+    var scrollTops = {}
+    ret.scrollTops = scrollTops
+    var y = 0
+    var prevLetter = 'z'
+    _.each(words, function (word) {
+        var letter = word.toLowerCase()[0]
+        if (!scrollTops[letter]) {
+            scrollTops[letter] = y
+        }
+        var h = 35
+        if (word[0].toLowerCase() != prevLetter) {
+            prevLetter = word[0].toLowerCase()
+            var dd = $('<div style="width:100%;background:lightgrey;height:' + h + 'px"/>')
+            dd.append($('<div style="padding:5px;font-weight:bold"/>').text(prevLetter.toUpperCase()))
+            d.append(dd)
+            y += h
+        }
+        var dd = $('<div style="width:100%;background:white;height:' + h + 'px"/>')
+        dd.append($('<div style="padding:5px"/>').text(word))
+        d.append(dd)
+        y += h
+
+        dd.click(function () {
+            ret.cb(word)
+        })
+    })
+
+    var prev = 0
+    for (var i = 0; i < 26; i++) {
+        var letter = String.fromCharCode('a'.charCodeAt(0) + i)
+        if (!ret.scrollTops[letter])
+            ret.scrollTops[letter] = prev
+        prev = ret.scrollTops[letter]
+    }
+
+    return ret
+}
+
 $(function () {
     if (!_.getUrlParams()['user']) {
         window.location.href = window.location.href + '?user=' + _.randomString(4)
@@ -501,6 +532,11 @@ $(function () {
     initTouch()
 
     initAudio()
+
+    g_wordLists = {
+        emotions : prepWordList(emotions),
+        sensations : prepWordList(sensations)
+    }
 
     g_socketOnText = null
     g_socketSend = openSocket(function (text) {
