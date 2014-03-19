@@ -349,6 +349,7 @@ function drawSenseInputScreen(senseCounts) {
         history.css('height', history.height())
     }, 0)
     function updateHistory() {
+        g_history = g_history.slice(-30)
         var now = _.time()
         function ago(t) {
             var span = now - t
