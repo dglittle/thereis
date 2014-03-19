@@ -346,7 +346,7 @@ function drawSenseInputScreen(senseCounts) {
 
     var history = $('<div style="width:100%;height:100%;vertical-align:top;overflow:hidden"/>')
     setTimeout(function () {
-        history.css('height', history.height())
+        history.css('height', h - top.height() - squareSize)
     }, 0)
     function updateHistory() {
         g_history = g_history.slice(-30)
