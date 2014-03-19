@@ -25,6 +25,8 @@ th, td {
 
 <script src="/static/utils.js"></script>
 <script src="/static/wordcloud2.js"></script>
+
+<script src="/static/words.js"></script>
 <script>
 
 ///
@@ -40,45 +42,23 @@ function openSocket(cb) {
         var msg = _.unJson(e.data)
         if (msg.type == 'keepAlive') {
         } else if (msg.type == 'text') {
-            cb(msg.text)
+            cb(msg)
+        } else if (msg.type == 'recent') {
+            _.each(msg.recent, function (msg) {
+                cb(msg)
+            })
         }
     }
     ws.onclose = function () { error() }
     ws.onerror = function () { error() }
-    return function (text) {
+    return function (text, user) {
         ws.send(_.json({
             type : 'text',
-            text : text
+            text : text,
+            time : _.time(),
+            user : user
         }))
     }
-}
-
-///
-
-var tau = Math.PI * 2
-
-function createVec(a) {
-    return [a.x, a.y]
-}
-
-function sub(a, b) {
-    return [a[0] - b[0], a[1] - b[1]]
-}
-
-function dot(a, b) {
-    return a[0] * b[0] + a[1] * b[1]
-}
-
-function cross(a, b) {
-    return a[0] * b[1] - a[1] * b[0]
-}
-
-function mag(a) {
-    return Math.sqrt(dot(a, a))
-}
-
-function angleBetween(a, b) {
-    return Math.acos(dot(a, b) / mag(a) / mag(b))
 }
 
 ///
@@ -146,7 +126,9 @@ function drawSenseInputScreen(senseCounts) {
     senseCounts = senseCounts || {}
     function addSenseCount(sense) {
         _.bagAdd(senseCounts, sense)
-        g_socketSend(sense)
+        g_socketSend(sense, g_user._id)
+        g_history.push({ text : sense, time : _.time(), user : g_user._id })
+        updateHistory()
     }
 
     var w = $(window).width()
@@ -157,7 +139,7 @@ function drawSenseInputScreen(senseCounts) {
     square.css({
         width : squareSize,
         height : squareSize,
-        background : 'white'
+        background : 'white',
     })
 
     //Button label defaults
@@ -170,62 +152,27 @@ function drawSenseInputScreen(senseCounts) {
     }
     var senses = g_user.buttons.split('\n').slice(0, 9)
 
-    var oldRandom = Math.random
-    Math.randomSeed(5006)
-    var senseColors = {}
-    _.each(senses, function (s) {
-        var color = _.shuffle([200, _.randomInt(128, 200), 128])
-        var highlight = _.map(color, function (x) { return Math.round(_.lerp(128, 160, 200, 255, x)) })
-        function rgb(c) {
-            return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'
-        }
-        senseColors[s] = [rgb(color), rgb(highlight)]
-    })
-    Math.random = oldRandom
-
-    senseSounds = {
-        'feeling' : createSound('/static/feeling.wav'),
-        'thinking' : createSound('/static/thinking.wav'),
-        'seeing' : createSound('/static/seeing.wav'),
-        'hearing' : createSound('/static/hearing.wav')
-    }
-
     var buttons = []
-    function drawButton(text, colors) {
+    function drawButton(text) {
         var d = null
         if (text) {
             d = center($('<div style="font-size:x-large;font-weight:bold"/>').text(text))
-            d.css('background', colors[0])
+            d.css('background', 'white')
             d.ontouch = function () {
                 addSenseCount(text)
 
-                var snd = senseSounds[text]
-                if (snd) {
-                    snd.play()
-                }
-
-                d.css('background', colors[1])
+                d.css('background', 'lightgrey')
                 setTimeout(function () {
-                    d.css('background', colors[0])
+                    d.css('background', 'white')
                 }, 100)
             }
         } else {
-            d = $('<div style="width:100%;height:100%;vertical-align:top;overflow:hidden"/>')
-            g_socketOnText = function (text) {
-                var fader = $('<div/>').text(text)
-                var fadeAmount = 1
-                function doFade() {
-                    fader.css('color', 'rgba(0,0,0,' + fadeAmount + ')')
-                    if (fadeAmount > 0.01) {
-                        fadeAmount -= .333
-                        setTimeout(doFade, 2000)
-                    }
-                }
-                doFade()
-                d.prepend(fader)
-                d.children().slice(5).remove()
-            }
+            d = $('<div style="width:100%;height:100%"/>')
         }
+        d.css({
+            'border-top' : '1px solid black',
+            'border-left' : '1px solid black'
+        })
         buttons.push(d)
         return d
     }
@@ -364,7 +311,7 @@ function drawSenseInputScreen(senseCounts) {
     }
 
     var x = _.map(senses, function (s) {
-        return drawButton(s, senseColors[s])
+        return drawButton(s)
     })
     square.append(grid([x.slice(0, 3), x.slice(3, 6), x.slice(6, 9)]))
 
@@ -397,86 +344,36 @@ function drawSenseInputScreen(senseCounts) {
         input.val('')
     }))
 
-    var done = $('<table style="width:100%;height:100%"><tr><td align="center" valign="top"></td></tr></table>')
-    done.find('td').append($('<div style="margin-top:20px;font-size:x-large;font-weight:bold"/>').text('done'))
-    buttons.push(done)
-    done.ontouch = function () {
-        $('body').empty().append(drawCloud(senseCounts, w, h))
-        touch_gesture_region = 0
-        my_ontouchmove = null
-        ontouch = function () {
-            $('body').empty().append(drawSenseInputScreen())
+    var history = $('<div style="width:100%;height:100%;vertical-align:top;overflow:hidden"/>')
+    setTimeout(function () {
+        history.css('height', history.height())
+    }, 0)
+    function updateHistory() {
+        var now = _.time()
+        function ago(t) {
+            var span = now - t
+            return Math.round(span / 1000)
         }
-        rpc('saveCloud', { user : g_user._id, counts : senseCounts }, function () {})
-    }
-
-    return _.splitVert(2, 1, top, _.splitVert(2, 1, square, done))
-}
-
-function drawCloud(counts, w, h) {
-    var c = $('<canvas/>').attr('width', w).attr('height', h)
-
-    var big = Math.min(w, h) / 5
-    var small = 6
-    var min = _.min(counts)
-    var max = _.max(counts)
-    sizes = _.map(counts, function (x) {
-        return _.lerp(0, small, max, big, x)
-    })
-    WordCloud(c[0], {
-        list: _.pairs(sizes),
-        minRotation: tau / 4,
-        maxRotation: tau / 4,
-        rotateRatio: .5
-    })
-
-    return c
-}
-
-g_audio = null
-function initAudio() {
-    try {
-        // Fix up for prefixing
-        window.AudioContext = window.AudioContext || window.webkitAudioContext
-        g_audio = new AudioContext()
-    } catch(e) {}
-}
-
-function loadSound(url, cb) {
-    var request = new XMLHttpRequest()
-    request.open('GET', url, true)
-    request.responseType = 'arraybuffer'
-
-    request.onload = function () {
-        g_audio.decodeAudioData(request.response, function (buffer) {
-            cb(buffer)
-        }, function () {})
-    }
-    request.send()
-}
-
-function createSound(url) {
-    var buffer = null
-    var onLoad = null
-    loadSound(url, function (b) {
-        buffer = b
-        if (onLoad) onLoad()
-    })
-    var sound = {
-        play : function () {
-            if (!buffer) {
-                onLoad = function () {
-                    sound.play()
-                }
-                return
-            }
-            var source = g_audio.createBufferSource()
-            source.buffer = buffer
-            source.connect(g_audio.destination)
-            source.start(0)
+        function drawAgo(t) {
+            return $('<div style="width:1.5em;float:left"/>').text(ago(t))
         }
+        function drawNote(t) {
+            return $('<div style="float:left"/>').text(t)
+        }
+        history.empty()
+        _.each(g_history.slice(0).reverse(), function (h) {
+            history.append(drawAgo(h.time))
+            history.append(drawNote(h.text).css('color', h.user == g_user._id ? 'black' : 'blue'))
+            history.append($('<div style="clear:both"/>'))
+        })
     }
-    return sound
+    g_socketOnText = function (msg) {
+        g_history.push(msg)
+        updateHistory()
+    }
+    updateHistory()
+
+    return _.splitVert(2, 1, top, _.splitVert(1, 2, history, square))
 }
 
 function prepWordList(words) {
@@ -531,247 +428,25 @@ $(function () {
 
     initTouch()
 
-    initAudio()
-
     g_wordLists = {
         emotions : prepWordList(emotions),
         sensations : prepWordList(sensations)
     }
 
-    g_socketOnText = null
-    g_socketSend = openSocket(function (text) {
-        if (g_socketOnText) g_socketOnText(text)
+    g_history = []
+    g_socketOnText = function (msg) {
+        g_history.push(msg)
+    }
+    g_socketSend = openSocket(function (msg) {
+        if (g_socketOnText) g_socketOnText(msg)
     })
-
-    // from http://stackoverflow.com/questions/1207008/how-do-i-lock-the-orientation-to-portrait-mode-in-a-iphone-web-application
-    $(window).bind('orientationchange', function() {
-        if (window.orientation === undefined) return
-        var origin = ($(window).width() / 2) + 'px ' + ($(window).height() / 2) + 'px'
-        if (window.orientation % 180 == 0) {
-            $(document.body).css("-webkit-transform-origin", "").css("-webkit-transform", "")
-        } else {
-            if (window.orientation > 0) { //clockwise
-                $(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(-90deg)")
-            } else {
-                $(document.body).css("-webkit-transform-origin", origin).css("-webkit-transform", "rotate(90deg)")
-            }
-        }
-    }).trigger('orientationchange')        
 
     rpc('getUser', _.getUrlParams()['user'], function (user) {
         g_user = user
 
-        if(_.getUrlParams()['mobile'] || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                $('body').append(drawSenseInputScreen())
-        } else {
-            rpc('getClouds', g_user._id, function (clouds) {
-                if (clouds.length == 0) {
-                    $('body').append($('<div/>').text('open this url on a phone to do some noting, and come back here to see old word clouds'))
-                    return
-                }
-                function drawNext() {
-                    var cloud = clouds.shift()
-                    if (cloud) {
-                        $('body').append($('<div style="float:left"/>').append(drawCloud(cloud.counts, 400, 400)))
-                        setTimeout(drawNext, 0)
-                    }
-                }
-                drawNext()
-            })
-        }
+        $('body').append(drawSenseInputScreen())
     })
 })
-
-var emotions = [
-    "absorption",
-    "acceptance",
-    "affection",
-    "agitation",
-    "aggravation",
-    "alertness",
-    "allowing",
-    "amazement",
-    "amusement",
-    "anger",
-    "annoyance",
-    "anxiety",
-    "aversion",
-    "bewilderment",
-    "bliss",
-    "boredom",
-    "calm",
-    "clarity",
-    "comfort",
-    "compassion",
-    "concentration",
-    "connection",
-    "contempt",
-    "contraction",
-    "contrariness",
-    "curiosity",
-    "delicacy",
-    "depression",
-    "desire",
-    "despair",
-    "discomfort",
-    "discouragement",
-    "disillusionment",
-    "dissatisfaction",
-    "distraction",
-    "don't-know",
-    "doubt",
-    "driftiness",
-    "drowsiness",
-    "dullness",
-    "ecstasy",
-    "embarrassment",
-    "empathy",
-    "energy",
-    "engagement",
-    "enjoyment",
-    "encouragement",
-    "enthusiasm",
-    "equanimity",
-    "fatigue",
-    "fear",
-    "fidgetiness",
-    "flow",
-    "focus",
-    "fragility",
-    "freedom",
-    "frustration",
-    "fun",
-    "gratification",
-    "gratitude",
-    "gravitas",
-    "happiness",
-    "hatefulness",
-    "hatred",
-    "hope",
-    "ill-will",
-    "inhibition",
-    "insecurity",
-    "interest",
-    "investigation",
-    "irritability",
-    "irritation",
-    "itching",
-    "joy",
-    "judgment",
-    "liberation",
-    "loathing",
-    "longing",
-    "love",
-    "lovingkindness",
-    "metta",
-    "mindfulness",
-    "mudita",
-    "neutrality",
-    "neutralness",
-    "nostalgia",
-    "OKness",
-    "opening",
-    "openness",
-    "optimism",
-    "outrage",
-    "pastizing",
-    "patience",
-    "peace",
-    "peacefulness",
-    "petulance",
-    "pinching",
-    "pleasantness",
-    "pleasure",
-    "poignancy",
-    "pride",
-    "quiet",
-    "quietude",
-    "rapture",
-    "regret",
-    "remorse",
-    "relaxation",
-    "relief",
-    "resilience",
-    "restfulness",
-    "restlessness",
-    "rumination",
-    "sanity",
-    "satisfaction",
-    "self-consciousness",
-    "self-loathing",
-    "self-pity",
-    "self-recrimination",
-    "self-riteousness",
-    "sensitivity",
-    "shame",
-    "silence",
-    "sleepiness",
-    "smiling",
-    "spaciousness",
-    "surprise",
-    "surrender",
-    "sympathetic-joy",
-    "sympathy",
-    "tenderness",
-    "terror",
-    "uncertainty",
-    "vastness",
-    "vulnerability",
-    "wakefulness",
-    "wanting",
-    "wishing",
-    "well-being",
-    "well-wishing",
-    "willingness",
-    "wonder",
-    "wonderment",
-    "worry",
-    "yearning"
-]
-
-var sensations = [
-    "aching",
-    "bending",
-    "brightness",
-    "burning",
-    "coldness",
-    "contraction",
-    "coolness",
-    "dampness",
-    "dryness",
-    "expansion",
-    "firmness",
-    "flickering",
-    "flowing",
-    "fluttering",
-    "grimacing",
-    "grinding",
-    "hardness",
-    "heat",
-    "heaviness",
-    "itching",
-    "moistness",
-    "moving",
-    "paining",
-    "pinching",
-    "pounding",
-    "pressure",
-    "pulling",
-    "pulsing",
-    "roughness",
-    "smoothness",
-    "softness",
-    "stiffness",
-    "stickiness",
-    "stinging",
-    "stretching",
-    "throbbing",
-    "tickling",
-    "tightness",
-    "tingling",
-    "twitching",
-    "wetness"
-]
 
 </script>
 </body>

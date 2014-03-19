@@ -1,5 +1,31 @@
 
+///
+
 tau = Math.PI * 2
+
+function createVec(a) {
+    return [a.x, a.y]
+}
+
+function sub(a, b) {
+    return [a[0] - b[0], a[1] - b[1]]
+}
+
+function dot(a, b) {
+    return a[0] * b[0] + a[1] * b[1]
+}
+
+function cross(a, b) {
+    return a[0] * b[1] - a[1] * b[0]
+}
+
+function mag(a) {
+    return Math.sqrt(dot(a, a))
+}
+
+function angleBetween(a, b) {
+    return Math.acos(dot(a, b) / mag(a) / mag(b))
+}
 
 ///
 

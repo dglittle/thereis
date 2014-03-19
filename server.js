@@ -38,6 +38,7 @@ _.run(function () {
         process.env.PORT, process.env.SESSION_SECRET,
         rpc_version, rpc)
 
+    var recent = []
     var liveUsers = []
     var wss = new (require('ws').Server)({ server : server })
     wss.on('connection', function (ws) {
@@ -46,7 +47,14 @@ _.run(function () {
                 msg = _.unJson(msg)
                 if (msg.type == 'join') {
                     liveUsers.push(ws)
+                    ws.send(_.json({
+                        type : 'recent',
+                        recent : recent
+                    }))
                 } else if (msg.type == 'text') {
+                    msg.time = _.time()
+                    recent.push(msg)
+                    recent = recent.slice(-10)
                     _.each(liveUsers, function (u) {
                         if (u != ws) {
                             u.send(_.json(msg))
