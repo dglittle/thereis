@@ -364,7 +364,7 @@ function drawSenseInputScreen(senseCounts) {
         history.empty()
         _.each(g_history.slice(0).reverse(), function (h) {
             history.append(drawAgo(h.time))
-            history.append(drawNote(h.text).css('color', h.user == g_user._id ? 'black' : 'blue'))
+            history.append(drawNote(h.text).css('color', h.user == g_user._id ? 'red' : 'blue'))
             history.append($('<div style="clear:both"/>'))
         })
     }
